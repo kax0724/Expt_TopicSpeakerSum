@@ -3,11 +3,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-[[source]]
-url = "https://download.pytorch.org/whl/"
-verify_ssl = true
-name = "downloadpytorch"
-
 [packages]
 numpy = "*"
 jupyter = "*"
@@ -18,7 +13,6 @@ wandb = "*"
 transformers = "*"
 pytorch-lightning = "*"
 rouge-score = "*"
-torch = {version = "==1.10.1+cpu", index = "downloadpytorch"}
 
 [dev-packages]
 
