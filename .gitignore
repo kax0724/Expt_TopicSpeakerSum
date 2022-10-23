@@ -2,7 +2,6 @@ output
 wandb
 logs
 __pycache__
-Pipfile
 Pipfile.lock
 .lock
 .python-version
