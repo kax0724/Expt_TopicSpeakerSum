@@ -5,14 +5,19 @@ name = "pypi"
 
 [packages]
 numpy = "*"
-jupyter = "*"
-jupyterlab = "*"
 pandas = "*"
 scikit-learn = "*"
 wandb = "*"
-transformers = "*"
-pytorch-lightning = "*"
+pytorch-lightning = "1.0.4"
 rouge-score = "*"
+sacrebleu = "*"
+fsspec = "*"
+filelock = "*"
+transformers = "3.5.1"
+fire = "*"
+jupyter = "*"
+jupyterlab = "*"
+matplotlib = "*"
 
 [dev-packages]
 
