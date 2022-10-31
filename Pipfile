@@ -3,23 +3,40 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[[source]]
+url = "https://download.pytorch.org/whl/"
+verify_ssl = true
+name = "downloadpytorch"
+
 [packages]
 numpy = "*"
 pandas = "*"
 scikit-learn = "*"
 wandb = "*"
-pytorch-lightning = "1.0.4"
+pytorch-lightning = "==1.0.4"
 rouge-score = "*"
 sacrebleu = "*"
 fsspec = "*"
 filelock = "*"
-transformers = "3.5.1"
+transformers = "==3.5.1"
 fire = "*"
 jupyter = "*"
 jupyterlab = "*"
 matplotlib = "*"
+torch = {version = "==1.10.1+cpu", index = "downloadpytorch"}
+streamlit = "*"
+elasticsearch = "*"
+seqeval = "*"
+tensorboard = "*"
+tensorboardX = "*"
+gensim = "*"
+faiss-cpu = "*"
+fairseq ="*"
+psutil = "*"
+nlp = "*"
+pyrouge = "*"
 
 [dev-packages]
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
