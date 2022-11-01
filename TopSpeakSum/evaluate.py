@@ -1,12 +1,119 @@
 import sys
-import string
-import argparse
-import tempfile
+
 import os
+import argparse
+import string
+import datetime
+import tempfile
+import json
 import time
 import shutil
 from bs_pyrouge import Rouge155
 import nltk
+import warnings
+from logging import getLogger
+from pathlib import Path
+from typing import Dict, List
+import pickle
+
+import torch
+from tqdm import tqdm
+
+from transformers import AutoModelForSeq2SeqLM, AutoTokenizer
+from utils import cal_exact_rouge, calculate_rouge, chunks, parse_numeric_n_bool_cl_kwargs, use_task_specific_params
+from finetune import SummarizationModule
+
+logger = getLogger(__name__)
+
+
+DEFAULT_DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+
+
+def generate_summaries_or_translations(
+    examples: List[str],
+    out_file: str,
+    model_name: str,
+    batch_size: int = 8,
+    device: str = DEFAULT_DEVICE,
+    fp16=False,
+    task="summarization",
+    prefix=None,
+    **generate_kwargs,
+) -> Dict:
+    """Save model.generate results to <out_file>, and return how long it took."""
+    fout = Path(out_file).open("w", encoding="utf-8")
+    model_name = str(model_name)
+
+    # loading hparams...
+    with open(model_name.replace("best_tfmr","hparams.pkl"), 'rb') as f:
+        hparams = pickle.load(f)
+
+    model: SummarizationModule = SummarizationModule(hparams)
+
+    if hparams.expand_vocab:
+        special_tokens_dict = {'additional_special_tokens': ['[SAYS]','[EOU]','[EOT]']}
+        num_added_toks = model.tokenizer.add_special_tokens(special_tokens_dict)
+        model.model.resize_token_embeddings(len(model.tokenizer))
+
+    if hparams.use_speaker_embeds or hparams.use_turn_embeds:
+        from speaker_embed_encoder import BartEncoderWithSpeakerEmbedding
+        model.model.model.encoder = BartEncoderWithSpeakerEmbedding(
+            model.config,
+            model.model.model.shared,
+            ratio_to_token_embedding=hparams.ratio_to_token_embedding,
+            speaker_embed_scale=hparams.speaker_embed_scale,
+            use_turn_embeds=hparams.use_turn_embeds,
+            partial_embed=hparams.partial_embed,
+            )
+
+    checkpoint = torch.load(model_name.replace("best_tfmr","val_avg_rouge2=29.0483-step_count=11.ckpt"))['state_dict']
+    model.load_state_dict(checkpoint)
+    model = model.to('cuda')
+
+    start_time = time.time()
+    # update config with task specific params
+    use_task_specific_params(model.model, task)
+    if prefix is None:
+        prefix = prefix or getattr(model.model.config, "prefix", "") or ""
+    for examples_chunk in tqdm(list(chunks(examples, batch_size))):
+        examples_chunk = [prefix + text for text in examples_chunk]
+        batch = model.tokenizer(examples_chunk, return_tensors="pt", truncation=True, padding="longest").to(device)
+        summaries = model.model.generate(
+            input_ids=batch.input_ids,
+            attention_mask=batch.attention_mask,
+            num_beams=8,
+            max_length=64,
+            **generate_kwargs,
+        )
+        dec = model.tokenizer.batch_decode(summaries, skip_special_tokens=True, clean_up_tokenization_spaces=True)
+        for hypothesis in dec:
+            fout.write(hypothesis + "\n")
+            fout.flush()
+    fout.close()
+    runtime = int(time.time() - start_time)  # seconds
+    n_obs = len(examples)
+    return dict(n_obs=n_obs, runtime=runtime, seconds_per_sample=round(runtime / n_obs, 4))
+
+
+def datetime_now():
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+
+def run_generate(verbose=True):
+    """
+
+    Takes input text, generates output, and then using reference calculates the BLEU scores.
+
+    The results are saved to a file and returned to the caller, and printed out unless ``verbose=False`` is passed.
+
+    Args:
+        verbose (:obj:`bool`, `optional`, defaults to :obj:`True`): print results to stdout
+
+    Returns:
+        a tuple: ``(scores, params}``
+        - ``scores``: a dict of scores data ``{'bleu': 39.6501, 'n_obs': 2000, 'runtime': 186, 'seconds_per_sample': 0.093}``
+        - ``params``: a dict of custom params, e.g. ``{'num_beams': 5, 'length_penalty': 0.8}``
+    """
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--generated", type=str, help="generated output file.")
@@ -15,6 +122,8 @@ parser.add_argument("--duplicate_rate", type=float, default=0.7,
                     help="If the duplicat rate (compared with history) is large, we can discard the current sentence.")
 parser.add_argument("--trunc_len", type=int, default=0,
                     help="Truncate line by the maximum length.")
+
+
 args = parser.parse_args()
 
 fin = open(args.generated, 'r', encoding='utf-8')
