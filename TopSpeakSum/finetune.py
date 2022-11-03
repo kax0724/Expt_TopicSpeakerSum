@@ -175,7 +175,7 @@ class SummarizationModule(BaseTransformer):
         if self.hparams.model_name_or_path == 'facebook/bart-large-cnn':
             kwargs['force_bos_token_to_be_generated'] = True
         else:
-            kwargs['force_bos_token_to_be_generated'] = False
+            kwargs['force_bos_token_to_be_generated'] = True
 
         # kwargs['return_dict']=True
 
@@ -195,12 +195,13 @@ class SummarizationModule(BaseTransformer):
 
     def _step(self, batch: dict) -> Tuple:
         pad_token_id = self.tokenizer.pad_token_id
-        src_ids, src_mask = batch["input_ids"], batch["attention_mask"]
-        tgt_ids = batch["decoder_input_ids"]
+        # source_ids, source_mask, target_ids = batch["input_ids"], batch["attention_mask"], batch["decoder_input_ids"]
+        source_ids, source_mask, target_ids, topic_p = batch["input_ids"], batch["attention_mask"], batch[
+            "decoder_input_ids"], batch['topic_p']
         if isinstance(self.model, T5ForConditionalGeneration):
-            decoder_input_ids = self.model._shift_right(tgt_ids)
+            decoder_input_ids = self.model._shift_right(target_ids)
         else:
-            decoder_input_ids = shift_tokens_right(tgt_ids, pad_token_id)
+            decoder_input_ids = shift_tokens_right(target_ids, pad_token_id)
         if not self.already_saved_batch:  # This would be slightly better if it only happened on rank zero
             batch["decoder_input_ids"] = decoder_input_ids
             self.save_readable_batch(batch)
@@ -384,7 +385,7 @@ class SummarizationModule(BaseTransformer):
         )
         parser.add_argument(
             "--max_target_length",
-            default=80,
+            default=56,
             type=int,
             help="The maximum total input sequence length after tokenization. Sequences longer "
                  "than this will be truncated, sequences shorter will be padded.",

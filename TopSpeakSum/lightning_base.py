@@ -27,6 +27,7 @@ from transformers.optimization import (
     get_cosine_schedule_with_warmup,
     get_cosine_with_hard_restarts_schedule_with_warmup,
     get_linear_schedule_with_warmup,
+    get_polynomial_decay_schedule_with_warmup,
 )
 
 logger = logging.getLogger(__name__)
@@ -44,8 +45,6 @@ except pkg_resources.VersionConflict:
 MODEL_MODES = {
     "base": AutoModel,
     "sequence-classification": AutoModelForSequenceClassification,
-    # "pretraining": AutoModelForPreTraining,
-    "pretraining": BartForConditionalGeneration.from_pretrained,
     "question-answering": AutoModelForQuestionAnswering,
     "pretraining": AutoModelForPreTraining,
     "token-classification": AutoModelForTokenClassification,
@@ -201,10 +200,10 @@ class BaseTransformer(pl.LightningModule):
         return self.train_loader
 
     def val_dataloader(self):
-        return self.get_dataloader("dev", self.hparams.eval_batch_size)
+        return self.get_dataloader("dev", self.hparams.eval_batch_size, shuffle=False)
 
     def test_dataloader(self):
-        return self.get_dataloader("test", self.hparams.eval_batch_size)
+        return self.get_dataloader("test", self.hparams.eval_batch_size, shuffle=False)
 
     def _feature_file(self, mode):
         return os.path.join(
@@ -229,7 +228,7 @@ class BaseTransformer(pl.LightningModule):
     def add_model_specific_args(parser, root_dir):
         parser.add_argument(
             "--model_name_or_path",
-            default="sshleifer/distilbart-cnn-12-6",
+            default= None,
             type=str,
             required=True,
             help="Path to pretrained model or model identifier from huggingface.co/models",
@@ -237,12 +236,12 @@ class BaseTransformer(pl.LightningModule):
         parser.add_argument(
             "--config_name", default="", type=str, help="Pretrained config name or path if not the same as model_name"
         )
-        # parser.add_argument(
-        #     "--tokenizer_name",
-        #     default=None,
-        #     type=str,
-        #     help="Pretrained tokenizer name or path if not the same as model_name",
-        # )
+        parser.add_argument(
+            "--tokenizer_name",
+            default=None,
+            type=str,
+            help="Pretrained tokenizer name or path if not the same as model_name",
+        )
         parser.add_argument(
             "--cache_dir",
             default="",
