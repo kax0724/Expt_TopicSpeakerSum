@@ -39,6 +39,7 @@ torchaudio = "==0.10.1"
 setuptools = "==59.5.0"
 datasets = "*"
 py7zr = "*"
+command = "*"
 
 [dev-packages]
 

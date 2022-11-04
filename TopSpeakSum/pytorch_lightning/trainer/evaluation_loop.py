@@ -136,12 +136,12 @@ from torch import distributed as dist
 from transformers import BartTokenizer
 from gensim.corpora import Dictionary
 from gensim.test.utils import datapath
-from TopSpeakSum.data_utils import DocDataset
+from data_utils import DocDataset
 import re
 import os
 from torch.autograd import Variable
-from TopSpeakSum.mlutils.exp import yaml_load
-from TopSpeakSum.mlutils.pt.training import GSMTrainer, extend_config_reference
+from mlutils.exp import yaml_load
+from mlutils.pt.training import GSMTrainer, extend_config_reference
 
 try:
     import torch_xla.distributed.parallel_loader as xla_pl

@@ -20,7 +20,7 @@ if torch_device == 'cuda':
 else:
     model = model.to(torch_device)
 
-corpus_dir = "/home/naraki/dialogsum/corpus"
+corpus_dir = "/Users/kaima/PycharmProjects/Expt_TopicSpeakerSum/TopSpeakSum/data/corpus"
 df_train = pd.read_table(os.path.join(corpus_dir,"train.tsv"), index_col=0)
 
 dialogues = list(df_train['dialogue'][:4].values)

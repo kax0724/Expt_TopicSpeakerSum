@@ -1,5 +1,8 @@
 # Add parent directory to python path to access lightning_base.py
 export PYTHONPATH="../":"${PYTHONPATH}"
+DATA_DIR=./data/samsum_dataset3 \
+OUTPUT_DIR=./output/topspeak \
+
 
 # the proper usage is documented in the README, you need to specify data_dir, output_dir and model_name_or_path
 python finetune.py \
@@ -21,17 +24,22 @@ python finetune.py \
     --n_train -1 \
     --n_val -1 \
     --n_test -1 \
-    --data_dir /home/naraki/dialogsum/samsum_dataset_fixed \
-    --output_dir output/2021-05-12-16-13-26 \
-    --model_name_or_path google/pegasus-xsum \
     --gpus 1 \
     --logger_name wandb \
     --use_speaker_embeds \
     --partial_embed \
+    --data_dir $DATA_DIR \
+    --train_batch_size 32 \
+    --eval_batch_size 32 \
+    --output_dir $OUTPUT_DIR \
+    --num_train_epochs 100 \
+    --model_name_or_path google/pegasus-xsum \
+    --save_top_k 5 \
+    --early_stopping_patience 50 \
+    --warmup_steps 10 \
     --speaker_embed_scale 10 \
     --val_max_target_length 100 \
     --test_max_target_length 100 \
     --max_length 100 \
     --min_length 10 \
-    --fixedspecialtoken \
     $@
