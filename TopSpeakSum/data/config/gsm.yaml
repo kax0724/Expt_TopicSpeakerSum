@@ -2,7 +2,7 @@ callback: callback_npmi
 callback_npmi: { embedding_path: '', every: 100, metric: npmi, topk: 100 }
 callback_wetc: { embedding_path: '', every: 100, metric: wetc, topk: 10 }
 comment: ''
-dataset: { batch_size: 64, data_dir: data/cnndm/corpus, dev_ratio: 0.1, device: device }
+dataset: { batch_size: 64, data_dir: data/samsum_dataset3, dev_ratio: 0.1, device: device }
 device: cpu
 drop_rate: 0.2
 hidden:

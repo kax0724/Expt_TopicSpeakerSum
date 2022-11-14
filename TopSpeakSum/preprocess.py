@@ -24,7 +24,7 @@ def check_no_newline(text_list):
         assert "\r" not in text and "\n" not in text
 
 def save_data(text_list, output_dir, data_name, mode):
-    with open(os.path.join(output_dir, '{}.{}'.format(data_name, mode)), 'w') as f:
+    with open(os.path.join(output_dir, '{}.{}'.format(data_name, mode)), 'w', encoding='utf-8') as f:
         f.write('\n'.join(text_list))
 
 def newline_to_sep(text_list):
@@ -209,4 +209,4 @@ if __name__ == '__main__':
     corpus_dir = "/Users/kaima/PycharmProjects/Expt_TopicSpeakerSum/TopSpeakSum/data/corpus"
     output_dir = "/Users/kaima/PycharmProjects/Expt_TopicSpeakerSum/TopSpeakSum/data/samsum_dataset3"
 
-    preprocess(corpus_dir, output_dir, dialogue=True, del_eot=True)
+    preprocess(corpus_dir, output_dir, dialogue=True, del_eot=False)

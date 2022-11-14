@@ -28,7 +28,6 @@ try:
         calculate_bleu,
         calculate_rouge,
         ROUGE_KEYS,
-        calculate_bleu_score,
         Seq2SeqDataset,
         MBartDataset,
         label_smoothed_nll_loss,
@@ -48,7 +47,6 @@ except ImportError:
         freeze_params,
         calculate_rouge,
         ROUGE_KEYS,
-        calculate_bleu_score,
         label_smoothed_nll_loss,
     )
     from callbacks import Seq2SeqLoggingCallback, get_checkpoint_callback, get_early_stopping_callback

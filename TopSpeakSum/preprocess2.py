@@ -21,12 +21,12 @@ from nltk.stem.porter import PorterStemmer
 
 
 def data_lodaer(input_path, filename):
-    with open(f"{input_path}/{filename}", "r") as file:
+    with open(f"{input_path}/{filename}", "r", encoding="utf-8") as file:
         lines = [line.rstrip().replace('<S_SEP>', '').replace('-LRB-', '').replace('-RRB-', '') for line in file]
     return lines
 
 # use 'train.article' to build the dict
-docs = data_lodaer(input_path=f'data/cnndm/org_data', filename='train.article')
+docs = data_lodaer(input_path=f'data/samsum_dataset3', filename='train.source')
 print(len(docs))
 
 # Tokenize the documents
@@ -70,7 +70,7 @@ dictionary.filter_extremes(no_below=1000, no_above=0.5)
 
 # path for saved dictionary: /Users/rachelzheng/opt/anaconda3/lib/python3.7/site-packages/gensim/test/test_data/dict-www-cnndm
 # saved /home/rachelzheng/www/venv/lib/python3.6/site-packages/gensim/test/test_data/dict-www-cnndm
-dictionary.save(datapath('dict-www-cnndm-unigram'))
+dictionary.save(datapath('dict-www-samsum-unigram'))
 # dictionary = Dictionary.load(datapath('dict-www-cnndm'))
 
 
