@@ -86,6 +86,7 @@ class SpeakerConverter():
                             break
                         else:
                             speaker_ids.append(self.current_speaker_id)
+                            break
                 elif self.eot_id == text_seq[w_idx]:
                     for i in range(w_idx+1, text_len):
                         if self.eod_id == text_seq[i]:
@@ -203,6 +204,8 @@ class BartEncoderWithSpeakerEmbedding(nn.Module):
             # x[:,:,self.embed_dim*7//8:] = x[:,:,self.embed_dim*7//8:] + embed_spk[:,:,self.embed_dim//8:]
         # else:
         #     x = x + embed_spk
+        print(x.shape)
+        print(embed_spk.shape)
         x = x + embed_spk
 
         x = self.layernorm_embedding(x)

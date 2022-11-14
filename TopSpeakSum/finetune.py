@@ -82,7 +82,7 @@ class SummarizationModule(BaseTransformer):
     mode = "summarization"
     loss_names = ["loss"]
     metric_names = ROUGE_KEYS
-    val_metric = "rouge2"
+    default_val_metric = "rouge2"
 
     def __init__(self, hparams, **kwargs):
         if hparams.sortish_sampler and hparams.gpus > 1:
@@ -194,8 +194,7 @@ class SummarizationModule(BaseTransformer):
     def _step(self, batch: dict) -> Tuple:
         pad_token_id = self.tokenizer.pad_token_id
         # source_ids, source_mask, target_ids = batch["input_ids"], batch["attention_mask"], batch["decoder_input_ids"]
-        source_ids, source_mask, target_ids, topic_p = batch["input_ids"], batch["attention_mask"], batch[
-            "decoder_input_ids"], batch['topic_p']
+        source_ids, source_mask, target_ids = batch["input_ids"], batch["attention_mask"], batch["labels"] # batch['topic_p']
         if isinstance(self.model, T5ForConditionalGeneration):
             decoder_input_ids = self.model._shift_right(target_ids)
         else:
@@ -207,7 +206,7 @@ class SummarizationModule(BaseTransformer):
         decoder_input_ids = target_ids[:, :-1].contiguous()
         lm_labels = target_ids[:, 1:].clone()
 
-        outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=decoder_input_ids, topic_p=topic_p,
+        outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=decoder_input_ids, #topic_p=topic_p,
                        use_cache=False)
         # calculate loss
         if self.hparams.label_smoothing == 0:
@@ -265,11 +264,9 @@ class SummarizationModule(BaseTransformer):
 
 
     def _generative_step(self, batch: dict) -> dict:
-        pad_token_id = self.tokenizer.pad_token_id
-        source_ids, source_mask, y = Seq2SeqDataset.trim_seq2seq_batch(batch, pad_token_id)
         t0 = time.time()
 
-        topic_p = batch['topic_p']
+        # topic_p = batch['topic_p']
 
         generated_ids = self.model.generate(
             input_ids=source_ids,
@@ -277,7 +274,6 @@ class SummarizationModule(BaseTransformer):
             use_cache=True,
             decoder_start_token_id=self.decoder_start_token_id,
             num_beams=self.eval_beams,
-            topic_p=topic_p,
             max_length=self.eval_max_length,
         )
         gen_time = (time.time() - t0) / source_ids.shape[0]
@@ -351,17 +347,6 @@ class SummarizationModule(BaseTransformer):
 
     def train_dataloader(self) -> DataLoader:
         dataloader = self.get_dataloader("train", batch_size=self.hparams.train_batch_size, shuffle=True)
-        t_total = (
-                (len(dataloader.dataset) // (self.hparams.train_batch_size * max(1, self.hparams.gpus)))
-                // self.hparams.accumulate_grad_batches
-                * float(self.hparams.max_epochs)
-        )
-        scheduler = get_linear_schedule_with_warmup(
-            self.opt, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=t_total
-        )
-        if max(scheduler.get_last_lr()) > 0:
-            warnings.warn("All learning rates are 0")
-        self.lr_scheduler = scheduler
         return dataloader
 
     def val_dataloader(self) -> DataLoader:
@@ -402,15 +387,10 @@ class SummarizationModule(BaseTransformer):
             help="The maximum total input sequence length after tokenization. Sequences longer "
                  "than this will be truncated, sequences shorter will be padded.",
         )
-        parser.add_argument(
-            "--data_dir",
-            type=str,
-            required=True,
-            help="The input data dir. Should contain train.source, train.target, val.source, val.target, test.source, test.target",
-        )
         parser.add_argument("--freeze_encoder", action="store_true")
         parser.add_argument("--freeze_embeds", action="store_true")
         parser.add_argument("--sortish_sampler", action="store_true", default=False)
+        parser.add_argument("--max_tokens_per_batch", type=int, default=None)
         parser.add_argument("--logger_name", type=str, choices=["default", "wandb", "wandb_shared"], default="default")
         parser.add_argument("--n_train", type=int, default=-1, required=False, help="# examples. -1 means use all.")
         parser.add_argument("--n_val", type=int, default=500, required=False, help="# examples. -1 means use all.")
@@ -421,7 +401,6 @@ class SummarizationModule(BaseTransformer):
         parser.add_argument("--label_smoothing", type=float, default=0.0, required=False)
         parser.add_argument("--src_lang", type=str, default="", required=False)
         parser.add_argument("--tgt_lang", type=str, default="", required=False)
-        parser.add_argument("--save_top_k", type=int, default=1, required=False, help="How many checkpoints to save")
         parser.add_argument("--eval_beams", type=int, default=None, required=False)
         parser.add_argument(
             "--val_metric", type=str, default=None, required=False, choices=["bleu", "rouge2", "loss", None]

@@ -24,7 +24,7 @@ def capture_all_exception(_run):
 
 def yaml_load(data_path):
     with open(data_path) as f:
-        return yaml.load(f)
+        return yaml.full_load(f)
 
 
 def yaml_dump(data, data_path):

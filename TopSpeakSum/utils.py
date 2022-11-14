@@ -158,7 +158,7 @@ class Seq2SeqDataset(Dataset):
 
     @staticmethod
     def get_char_lens(data_file):
-        return [len(x) for x in Path(data_file).open().readlines()]
+        return [len(x) for x in Path(data_file).open(encoding='utf-8').readlines()]
 
     @cached_property
     def tgt_lens(self):
@@ -201,11 +201,27 @@ class Seq2SeqDataset(Dataset):
         return source_ids, source_mask, y
 
 
-    def __getitem__(self, item):
-        raise NotImplementedError("You must implement this")
+    def __getitem__(self, index) -> Dict[str, str]:
+        index = index + 1  # linecache starts at 1
+        source_line = self.prefix + linecache.getline(str(self.src_file), index).rstrip("\n")
+        tgt_line = linecache.getline(str(self.tgt_file), index).rstrip("\n")
+        assert source_line, f"empty source line for index {index}"
+        assert tgt_line, f"empty tgt line for index {index}"
+        return {"tgt_texts": tgt_line, "src_texts": source_line, "id": index - 1}
 
-    def collate_fn(self, batch):
-        raise NotImplementedError("You must implement this")
+    def collate_fn(self, batch) -> Dict[str, torch.Tensor]:
+        """Call prepare_seq2seq_batch."""
+        batch_encoding: Dict[str, torch.Tensor] = self.tokenizer.prepare_seq2seq_batch(
+            [x["src_texts"] for x in batch],
+            tgt_texts=[x["tgt_texts"] for x in batch],
+            max_length=self.max_source_length,
+            max_target_length=self.max_target_length,
+            return_tensors="pt",
+            **self.dataset_kwargs,
+        ).data
+        batch_encoding["ids"] = torch.tensor([x["id"] for x in batch])
+        return batch_encoding
+
 
 
 class LegacySeq2SeqDataset(Seq2SeqDataset):
