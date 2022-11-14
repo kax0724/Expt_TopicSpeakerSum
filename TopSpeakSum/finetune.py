@@ -48,7 +48,7 @@ except ImportError:
         freeze_params,
         calculate_rouge,
         ROUGE_KEYS,
-        calculate_bleu,
+        calculate_bleu_score,
         label_smoothed_nll_loss,
     )
     from callbacks import Seq2SeqLoggingCallback, get_checkpoint_callback, get_early_stopping_callback
@@ -404,10 +404,15 @@ class SummarizationModule(BaseTransformer):
             help="The maximum total input sequence length after tokenization. Sequences longer "
                  "than this will be truncated, sequences shorter will be padded.",
         )
+        parser.add_argument(
+            "--data_dir",
+            type=str,
+            required=True,
+            help="The input data dir. Should contain train.source, train.target, val.source, val.target, test.source, test.target",
+        )
         parser.add_argument("--freeze_encoder", action="store_true")
         parser.add_argument("--freeze_embeds", action="store_true")
         parser.add_argument("--sortish_sampler", action="store_true", default=False)
-        parser.add_argument("--max_tokens_per_batch", type=int, default=None)
         parser.add_argument("--logger_name", type=str, choices=["default", "wandb", "wandb_shared"], default="default")
         parser.add_argument("--n_train", type=int, default=-1, required=False, help="# examples. -1 means use all.")
         parser.add_argument("--n_val", type=int, default=500, required=False, help="# examples. -1 means use all.")
@@ -424,6 +429,7 @@ class SummarizationModule(BaseTransformer):
             "--val_metric", type=str, default=None, required=False, choices=["bleu", "rouge2", "loss", None]
         )
         parser.add_argument("--eval_max_gen_length", type=int, default=None, help="never generate more than n tokens")
+        parser.add_argument("--save_top_k", type=int, default=1, required=False, help="How many checkpoints to save")
         parser.add_argument(
             "--early_stopping_patience",
             type=int,

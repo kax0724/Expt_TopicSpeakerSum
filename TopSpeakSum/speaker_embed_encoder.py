@@ -84,6 +84,8 @@ class SpeakerConverter():
                             speaker_ids.append(self.current_speaker_id)
                             self.change_speaker_id(text_seq[w_idx:i])
                             break
+                        else:
+                            speaker_ids.append(self.current_speaker_id)
                 elif self.eot_id == text_seq[w_idx]:
                     for i in range(w_idx+1, text_len):
                         if self.eod_id == text_seq[i]:

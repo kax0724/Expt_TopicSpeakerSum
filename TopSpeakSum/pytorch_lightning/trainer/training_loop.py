@@ -608,7 +608,7 @@ class TrainerTrainLoopMixin(ABC):
         # load config for GSM
         config = yaml_load(f"{self.default_root_dir}/data/config/gsm.yaml")
         # load dict
-        dictionary = Dictionary.load(datapath('dict-www-cnndm-unigram'))
+        dictionary = Dictionary.load(datapath('dict-www-samsum-unigram'))
         # remove [SEP]
         sep_list = ['[SEP_0]', '[SEP_1]', '[SEP_2]', '[SEP_3]', '[SEP_4]', '[SEP_5]', '[SEP_6]', '[SEP_7]',
                     '[SEP_8]', '[SEP_9]', '<S_SEP>']
