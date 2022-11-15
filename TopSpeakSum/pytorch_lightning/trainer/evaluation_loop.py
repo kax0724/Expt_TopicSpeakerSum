@@ -277,7 +277,7 @@ class TrainerEvaluationLoopMixin(ABC):
             tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
 
             # load dict
-            dictionary = Dictionary.load(datapath('dict-www-cnndm-unigram'))
+            dictionary = Dictionary.load(datapath('dict-www-samsum-unigram'))
 
             # vocab size for topic modeling
             vocab_size = len(dictionary)

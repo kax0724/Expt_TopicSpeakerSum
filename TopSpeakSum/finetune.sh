@@ -21,8 +21,8 @@ python finetune.py \
     --max_source_length 512 \
     --max_target_length 100 \
     --task summarization \
-    --train_batch_size 32 \
-    --eval_batch_size 32 \
+    --train_batch_size 16 \
+    --eval_batch_size 16 \
     --n_train -1 \
     --n_val -1 \
     --n_test -1 \
