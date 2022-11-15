@@ -1177,6 +1177,7 @@ class BartForConditionalGeneration(PretrainedBartModel):
             output_attentions=None,
             output_hidden_states=None,
             return_dict=None,
+            topic_p=None
             **unused,
     ):
         r"""
@@ -1243,7 +1244,7 @@ class BartForConditionalGeneration(PretrainedBartModel):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
             return_dict=return_dict,
-            topic_p=unused.pop("topic_p"),
+            topic_p=topic_p,
             # tm_loss=unused['topic_loss'],
             # K=unused['K'],
         )
