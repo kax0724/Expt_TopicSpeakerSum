@@ -194,7 +194,7 @@ class SummarizationModule(BaseTransformer):
     def _step(self, batch: dict) -> Tuple:
         pad_token_id = self.tokenizer.pad_token_id
         # source_ids, source_mask, target_ids = batch["input_ids"], batch["attention_mask"], batch["decoder_input_ids"]
-        source_ids, source_mask, target_ids = batch["input_ids"], batch["attention_mask"], batch["labels"] # batch['topic_p']
+        source_ids, source_mask, target_ids, topic_p = batch["input_ids"], batch["attention_mask"], batch["decoder_input_ids"], batch['topic_p']
         if isinstance(self.model, T5ForConditionalGeneration):
             decoder_input_ids = self.model._shift_right(target_ids)
         else:
@@ -206,7 +206,7 @@ class SummarizationModule(BaseTransformer):
         decoder_input_ids = target_ids[:, :-1].contiguous()
         lm_labels = target_ids[:, 1:].clone()
 
-        outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=decoder_input_ids, #topic_p=topic_p,
+        outputs = self(source_ids, attention_mask=source_mask, decoder_input_ids=decoder_input_ids, topic_p=topic_p,
                        use_cache=False)
         # calculate loss
         if self.hparams.label_smoothing == 0:
@@ -266,7 +266,7 @@ class SummarizationModule(BaseTransformer):
     def _generative_step(self, batch: dict) -> dict:
         t0 = time.time()
 
-        # topic_p = batch['topic_p']
+        topic_p = batch['labels']
 
         generated_ids = self.model.generate(
             input_ids=source_ids,
