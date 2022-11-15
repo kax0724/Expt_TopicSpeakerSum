@@ -33,7 +33,7 @@ from transformers.modeling_outputs import (
 from transformers.modeling_utils import PreTrainedModel
 from transformers.utils import logging
 
-from transformers import BartTokenizer
+from transformers.tokenization_bart import BartTokenizer
 from gensim.corpora import Dictionary
 from gensim.test.utils import datapath
 from data_utils import DocDataset

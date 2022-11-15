@@ -19,9 +19,11 @@ from sacrebleu import corpus_bleu
 from torch import nn
 from torch.utils.data import Dataset, Sampler
 
-from transformers import BartTokenizer
 from sentence_splitter import add_newline_to_end_of_each_sentence
-from transformers import BartTokenizer, EvalPrediction, PreTrainedTokenizer, T5Tokenizer
+from transformers.tokenization_bart import BartTokenizer
+from transformers.trainer_utils import EvalPrediction
+from transformers.tokenization_utils import PreTrainedTokenizer
+from transformers.tokenization_t5 import T5Tokenizer
 from transformers.file_utils import cached_property
 from modeling_taas import shift_tokens_right
 
