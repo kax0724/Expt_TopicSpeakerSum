@@ -134,7 +134,7 @@ class BaseTransformer(pl.LightningModule):
         return scheduler
 
     def configure_optimizers(self):
-        "Prepare optimizer and schedule (linear warmup and decay)"
+        """Prepare optimizer and schedule (linear warmup and decay)"""
         model = self.model
         new_params = ["embed_speaker"]
         no_decay = ["bias", "LayerNorm.weight"]
@@ -145,7 +145,7 @@ class BaseTransformer(pl.LightningModule):
                 "lr": self.hparams.new_params_learning_rate,
             },
             {
-                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay+new_params)],
+                "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay + new_params)],
                 "weight_decay": self.hparams.weight_decay,
                 "lr": self.hparams.learning_rate,
             },
@@ -168,10 +168,8 @@ class BaseTransformer(pl.LightningModule):
             )
         self.opt = optimizer
 
-        scheduler = get_linear_schedule_with_warmup(
-            self.opt, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=self.total_steps
-        )
-        scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
+        scheduler = self.get_lr_scheduler()
+
         return [optimizer], [scheduler]
 
     def test_step(self, batch, batch_nb):
