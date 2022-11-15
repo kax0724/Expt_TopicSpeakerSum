@@ -1177,7 +1177,7 @@ class BartForConditionalGeneration(PretrainedBartModel):
             output_attentions=None,
             output_hidden_states=None,
             return_dict=None,
-            topic_p=None
+            topic_p=None,
             **unused,
     ):
         r"""
