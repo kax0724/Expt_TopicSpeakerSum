@@ -168,8 +168,10 @@ class BaseTransformer(pl.LightningModule):
             )
         self.opt = optimizer
 
-        scheduler = self.get_lr_scheduler()
-
+        scheduler = get_linear_schedule_with_warmup(
+            self.opt, num_warmup_steps=self.hparams.warmup_steps, num_training_steps=self.total_steps
+        )
+        scheduler = {"scheduler": scheduler, "interval": "step", "frequency": 1}
         return [optimizer], [scheduler]
 
     def test_step(self, batch, batch_nb):

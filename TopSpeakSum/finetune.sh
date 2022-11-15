@@ -19,7 +19,6 @@ python finetune.py \
     --label_smoothing 0.1 \
     --max_source_length 512 \
     --max_target_length 100 \
-    --adafactor \
     --task summarization \
     --train_batch_size 32 \
     --eval_batch_size 32 \

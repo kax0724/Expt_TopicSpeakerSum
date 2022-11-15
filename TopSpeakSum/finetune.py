@@ -14,7 +14,7 @@ import torch
 from torch.utils.data import DataLoader
 
 from lightning_base import BaseTransformer, add_generic_args, generic_train
-from transformers import get_linear_schedule_with_warmup
+from transformers import get_linear_schedule_with_warmup, AdamW
 
 try:
     from .utils import (
