@@ -647,8 +647,7 @@ class GenerationMixin:
             model_inputs = self.prepare_inputs_for_generation(
                 input_ids, past=past, attention_mask=attention_mask, use_cache=use_cache, **model_kwargs
             )
-            outputs = self(**model_inputs, topic_p=model_kwargs['topic_p'].to(torch.float16),
-                           return_dict=True)  # (batch_size * num_beams, cur_len, vocab_size)
+            outputs = self(**model_inputs, return_dict=True)  # (batch_size * num_beams, cur_len, vocab_size)
             next_token_logits = outputs.logits[:, -1, :]  # (batch_size * num_beams, vocab_size)
 
             # if model has past, then set the past variable to speed up decoding
