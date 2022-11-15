@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers.configuration_bart import BartConfig
-from transformers.modeling_bart import (
+from modeling_taas import (
     EncoderLayer,
     SinusoidalPositionalEmbedding,
     LearnedPositionalEmbedding,

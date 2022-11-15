@@ -52,7 +52,7 @@ except ImportError:
     from callbacks import Seq2SeqLoggingCallback, get_checkpoint_callback, get_early_stopping_callback
 from callbacks import Seq2SeqLoggingCallback, get_checkpoint_callback, get_early_stopping_callback
 from transformers import MBartTokenizer, T5ForConditionalGeneration
-from transformers.modeling_bart import shift_tokens_right
+from modeling_taas import shift_tokens_right
 from utils import (
     ROUGE_KEYS,
     LegacySeq2SeqDataset,
@@ -266,17 +266,17 @@ class SummarizationModule(BaseTransformer):
     def _generative_step(self, batch: dict) -> dict:
         t0 = time.time()
 
-        topic_p = batch['labels']
+        topic_p = batch['topic_p']
 
         generated_ids = self.model.generate(
-            input_ids=source_ids,
-            attention_mask=source_mask,
+            batch["input_ids"],
+            attention_mask=batch["attention_mask"],
             use_cache=True,
             decoder_start_token_id=self.decoder_start_token_id,
             num_beams=self.eval_beams,
             max_length=self.eval_max_length,
         )
-        gen_time = (time.time() - t0) / source_ids.shape[0]
+        gen_time = (time.time() - t0) /batch["input_ids"].shape[0]
         preds = self.ids_to_clean_text(generated_ids)
         target = self.ids_to_clean_text(y)
         loss_tensors = self._step(batch)
