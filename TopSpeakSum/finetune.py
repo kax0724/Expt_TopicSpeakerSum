@@ -278,7 +278,7 @@ class SummarizationModule(BaseTransformer):
         )
         gen_time = (time.time() - t0) /batch["input_ids"].shape[0]
         preds = self.ids_to_clean_text(generated_ids)
-        target = self.ids_to_clean_text(y)
+        target = self.ids_to_clean_text(batch["decoder_input_ids"])
         loss_tensors = self._step(batch)
         base_metrics = {name: loss for name, loss in zip(self.loss_names, loss_tensors)}
         rouge: Dict = self.calc_generative_metrics(preds, target)
