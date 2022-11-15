@@ -23,7 +23,6 @@ import torch
 import torch.nn.functional as F
 from torch import Tensor, nn
 from torch.nn import CrossEntropyLoss
-from torch.utils.data import DataLoader
 
 from .activations import ACT2FN
 from .configuration_bart import BartConfig
@@ -42,14 +41,6 @@ from .modeling_outputs import (
 )
 from .modeling_utils import PreTrainedModel
 from .utils import logging
-
-from transformers import BartTokenizer
-from gensim.corpora import Dictionary
-from gensim.test.utils import datapath
-from data_utils import DocDataset
-import re
-from mlutils.exp import yaml_load
-from mlutils.pt.training import GSMTrainer, extend_config_reference
 
 logger = logging.get_logger(__name__)
 
@@ -928,54 +919,7 @@ class BartModel(PretrainedBartModel):
 
         assert decoder_input_ids is not None
 
-        if input_ids != None:
-            # load tokenizer
-            tokenizer = BartTokenizer.from_pretrained('facebook/bart-large')
-            # load config for GSM
-            config = yaml_load(f"./data/config/gsm.yaml")
-            # load dict
-            dictionary = Dictionary.load(datapath('dict-www-cnndm-unigram'))
-            # vocab size for topic modeling
-            vocab_size = len(dictionary)
-            # model
-            config['hidden']['features'][0] = vocab_size
-
-            # trainer batch
-            config['trainer_batch']['test_sample'] = 1
-            config = extend_config_reference(config)
-            gsm_trainer = config['GSMtrainer']
-            gsm_trainer['base_dir'] = f"./log/bart-large-cnn-finetune"
-            gsm_trainer = GSMTrainer.from_config(gsm_trainer)
-
-            # -----------------------------------------
-            # Topic Modeling - GSM
-            # -----------------------------------------
-            batch_size = input_ids.size()[0]
-
-            docs = []
-            for batch_num in range(batch_size):
-                # extract the batch_sentence
-                batch_sentence = tokenizer.decode(input_ids[batch_num].tolist(), skip_special_tokens=True)
-                # change to lowercase and split to list
-                batch_sentence_list = batch_sentence.split(" ")
-                text = ' '.join([x for x in batch_sentence_list])
-                fine_text = text.replace(' ##', '').lower()
-                batch_sentence = re.sub(r'[^\w\s]', '', fine_text)
-                # batch_sentence: change to the cleaned news for topic modeling
-                # change to training data format in topic modeling
-                gsm_data_bow = dictionary.doc2bow(batch_sentence.split(" "))
-                docs.append(gsm_data_bow)
-
-            # gsm_data: data for topic modeling
-            gsm_data = DataLoader(DocDataset(docs, len(dictionary), device='cuda'),
-                                  batch_size=batch_size, drop_last=False, num_workers=0)
-
-            gsm_trainer.__dict__['train_iterator'] = gsm_data
-
-            topic_loss, topic_p = gsm_trainer.co_train(vocab_size, training=True)
-            topic_p = topic_p.to(torch.float16)
-
-            del gsm_data
+        # current return_dict=False
 
         if encoder_outputs is None:
             encoder_outputs = self.encoder(
@@ -1019,19 +963,20 @@ class BartModel(PretrainedBartModel):
         # topic_token_attention <-> a: num * K
         # alpha: normalized topic_token_attention/a
 
-        if input_ids != None:
-            batch_size = encoder_outputs[0].size()[0]
+        batch_size = encoder_outputs[0].size()[0]
 
-            # K: number of topics
-            for batch_num in range(batch_size):
-                topic_token_attention = torch.mm(encoder_outputs[0][batch_num], torch.transpose(topic_p, 0, 1))
-                # topic_token_attention = F.softmax(topic_token_attention, dim=1)
-                # encoder_outputs[0][batch_num]:
-                # topic_token_attention = torch.mm(encoder_outputs[0][batch_num],
-                #                                  torch.transpose(topic_p[batch_num * K: (batch_num + 1) * K], 0, 1))
-                num_token_encoder = encoder_outputs[0][batch_num].size()[0]
+        # K: number of topics
+        for batch_num in range(batch_size):
+            topic_token_attention = torch.mm(encoder_outputs[0][batch_num], torch.transpose(topic_p, 0, 1))
+            # topic_token_attention = F.softmax(topic_token_attention, dim=1)
+            # encoder_outputs[0][batch_num]:
+            # topic_token_attention = torch.mm(encoder_outputs[0][batch_num],
+            #                                  torch.transpose(topic_p[batch_num * K: (batch_num + 1) * K], 0, 1))
+            num_token_encoder = encoder_outputs[0][batch_num].size()[0]
 
-                alpha = F.softmax(torch.mean(topic_token_attention, dim=1), dim=0).view(1, num_token_encoder)
+
+            ## TODO: mean or sum?
+            alpha = F.softmax(torch.mean(topic_token_attention, dim=1), dim=0).view(1, num_token_encoder)
 
             # import numpy as np
             # alpha_cpu = alpha.cpu()
@@ -1051,62 +996,50 @@ class BartModel(PretrainedBartModel):
             # np.savetxt(your_file, attention_cpu)
             # your_file.close()
 
-                one_diag = torch.diag(torch.ones(num_token_encoder, device=encoder_outputs[0].get_device()))
-                one_diag_m = one_diag[1:].clone()
+            one_diag = torch.diag(torch.ones(num_token_encoder, device=encoder_outputs[0].get_device()))
+            one_diag_m = one_diag[1:].clone()
 
-                # convert for amp - fp16 calculation
-                one_diag_m = one_diag_m.to(torch.float16)
-                alpha = alpha.to(torch.float16)
+            # convert for amp - fp16 calculation
+            one_diag_m = one_diag_m.to(torch.float16)
+            alpha = alpha.to(torch.float16)
 
-                weight_matrix = torch.cat((alpha, one_diag_m), 0)
+            weight_matrix = torch.cat((alpha, one_diag_m), 0)
 
-                # print(f"weight matrix: {weight_matrix}")
+            # print(f"weight matrix: {weight_matrix}")
 
-                # update_encoder_outputs = torch.transpose(
-                #     torch.mm(torch.transpose(encoder_outputs[0][-1, :, :], 0, 1), torch.transpose(weight_matrix, 0, 1)), 0,
-                #     1).unsqueeze(0)
-                if batch_num < 1:
-                    update_encoder_outputs = torch.transpose(
-                        torch.mm(torch.transpose(encoder_outputs[0][batch_num], 0, 1),
-                                 torch.transpose(weight_matrix, 0, 1)), 0,
-                        1).unsqueeze(0)
-                else:
-                    update_encoder_outputs_tmp = torch.transpose(
-                        torch.mm(torch.transpose(encoder_outputs[0][batch_num], 0, 1),
-                                 torch.transpose(weight_matrix, 0, 1)), 0,
-                        1).unsqueeze(0)
-                    update_encoder_outputs = torch.cat((update_encoder_outputs, update_encoder_outputs_tmp), 0)
-                torch.cuda.empty_cache()
+            # update_encoder_outputs = torch.transpose(
+            #     torch.mm(torch.transpose(encoder_outputs[0][-1, :, :], 0, 1), torch.transpose(weight_matrix, 0, 1)), 0,
+            #     1).unsqueeze(0)
+            if batch_num < 1:
+                update_encoder_outputs = torch.transpose(
+                    torch.mm(torch.transpose(encoder_outputs[0][batch_num], 0, 1),
+                             torch.transpose(weight_matrix, 0, 1)), 0,
+                    1).unsqueeze(0)
+            else:
+                update_encoder_outputs_tmp = torch.transpose(
+                    torch.mm(torch.transpose(encoder_outputs[0][batch_num], 0, 1),
+                             torch.transpose(weight_matrix, 0, 1)), 0,
+                    1).unsqueeze(0)
+                update_encoder_outputs = torch.cat((update_encoder_outputs, update_encoder_outputs_tmp), 0)
+            torch.cuda.empty_cache()
 
-            assert update_encoder_outputs.size() == encoder_outputs[0].size()
+        # print(f"size of update: {update_encoder_outputs.size()}")
+        # print(f"size of original: {encoder_outputs[0].size()}")
+        assert update_encoder_outputs.size() == encoder_outputs[0].size()
 
-            decoder_outputs = self.decoder(
-                decoder_input_ids,
-                update_encoder_outputs,
-                attention_mask,
-                decoder_padding_mask,
-                decoder_causal_mask=causal_mask,
-                past_key_values=past_key_values,
-                use_cache=use_cache,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-            )
-
-
-        else:
-            decoder_outputs = self.decoder(
-                decoder_input_ids,
-                encoder_outputs[0],
-                attention_mask,
-                decoder_padding_mask,
-                decoder_causal_mask=causal_mask,
-                past_key_values=past_key_values,
-                use_cache=use_cache,
-                output_attentions=output_attentions,
-                output_hidden_states=output_hidden_states,
-                return_dict=return_dict,
-            )
+        # decoder outputs consists of (dec_features, layer_state, dec_hidden, dec_attn)
+        decoder_outputs = self.decoder(
+            decoder_input_ids,
+            update_encoder_outputs,
+            attention_mask,
+            decoder_padding_mask,
+            decoder_causal_mask=causal_mask,
+            past_key_values=past_key_values,
+            use_cache=use_cache,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+            return_dict=return_dict,
+        )
 
         if not return_dict:
             return decoder_outputs + encoder_outputs
