@@ -934,7 +934,7 @@ class BartModel(PretrainedBartModel):
             # load config for GSM
             config = yaml_load(f"./data/config/gsm.yaml")
             # load dict
-            dictionary = Dictionary.load(datapath('dict-www-cnndm-unigram'))
+            dictionary = Dictionary.load(datapath('dict-www-samsum-unigram'))
             # vocab size for topic modeling
             vocab_size = len(dictionary)
             # model
