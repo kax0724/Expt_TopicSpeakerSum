@@ -28,6 +28,9 @@ python finetune.py \
     --n_test -1 \
     --gpus 1 \
     --logger_name wandb \
+    --save_top_k 3 \
+    --early_stopping_patience 3 \
+    --warmup_steps 10 \
     --use_speaker_embeds \
     --partial_embed \
     --model_name_or_path google/pegasus-xsum \
