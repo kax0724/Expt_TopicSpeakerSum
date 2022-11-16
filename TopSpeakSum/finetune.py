@@ -215,11 +215,13 @@ class SummarizationModule(BaseTransformer):
             lm_logits = outputs[0]
             assert lm_logits.shape[-1] == self.model.config.vocab_size
             loss = loss_fct(lm_logits.view(-1, lm_logits.shape[-1]), lm_labels.view(-1))
+            assert not torch.isnan(loss).any()
         else:
             lprobs = torch.nn.functional.log_softmax(outputs[0], dim=-1)
             loss, nll_loss = label_smoothed_nll_loss(
                 lprobs, lm_labels, self.hparams.label_smoothing, ignore_index=pad_token_id
             )
+            assert not torch.isnan(loss).any()
         return (loss,)
 
     @property
