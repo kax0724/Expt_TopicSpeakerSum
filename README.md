@@ -29,8 +29,8 @@ python finetune.py \
     --max_target_length 100 \
     --adafactor \
     --task summarization \
-    --train_batch_size 32 \
-    --eval_batch_size 32 \
+    --train_batch_size 1 \
+    --eval_batch_size 1 \
     --n_train -1 \
     --n_val -1 \
     --n_test -1 \
@@ -38,10 +38,10 @@ python finetune.py \
     --logger_name wandb \
     --use_speaker_embeds \
     --partial_embed \
-    --num_train_epochs 100 \
+    --num_train_epochs 10 \
     --model_name_or_path google/pegasus-xsum \
     --save_top_k 5 \
-    --early_stopping_patience 50 \
+    --early_stopping_patience 5 \
     --warmup_steps 10 \ 
     --speaker_embed_scale 10 \
     --val_max_target_length 100 \
