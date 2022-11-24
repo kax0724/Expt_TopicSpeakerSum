@@ -60,7 +60,7 @@ def generate_summaries_or_translations(
             partial_embed=hparams.partial_embed,
         )
 
-    checkpoint = torch.load(model_name.replace("best_tfmr", "val_avg_rouge2=30.5981-step_count=3-001.ckpt"))['state_dict']
+    checkpoint = torch.load(model_name.replace("best_tfmr", "val_avg_rouge2=30.5981-step_count=3.ckpt"))['state_dict']
     model.load_state_dict(checkpoint)
     model = model.to('cuda')
 
