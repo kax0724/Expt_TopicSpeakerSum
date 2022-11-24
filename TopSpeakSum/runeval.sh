@@ -8,4 +8,5 @@ OUTPUT_DIR=./output/topspeak \
 python runeval.py \
     model_dir $OUTPUT_DIR \
     dataset_dir $DATA_DIR  \
+    --val \
     $@
