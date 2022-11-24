@@ -60,7 +60,7 @@ def generate_summaries_or_translations(
             partial_embed=hparams.partial_embed,
         )
 
-    checkpoint = torch.load(model_name.replace("best_tfmr", "val_avg_rouge2=29.0483-step_count=11.ckpt"))['state_dict']
+    checkpoint = torch.load(model_name.replace("best_tfmr", "val_avg_rouge2=30.5981-step_count=3-001.ckpt"))['state_dict']
     model.load_state_dict(checkpoint)
     model = model.to('cuda')
 
@@ -159,7 +159,7 @@ def run_generate(verbose=True):
         args.save_path = os.path.join(args.model_dir, "test_gen_summary.txt")
         args.score_path = os.path.join(args.model_dir, "test_score.json")
 
-    examples = [" " + x.rstrip() if "t5" in args.model_name else x.rstrip() for x in open(args.input_path).readlines()]
+    examples = [" " + x.rstrip() if "t5" in args.model_name else x.rstrip() for x in open(args.input_path, encoding="utf-8").readlines()]
     if args.n_obs > 0:
         examples = examples[: args.n_obs]
     Path(args.save_path).parent.mkdir(exist_ok=True)
