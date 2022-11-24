@@ -5,7 +5,8 @@ export PYTHONPATH="../":"${PYTHONPATH}"
 DATA_DIR=./data/samsum_dataset3 \
 OUTPUT_DIR=./output/topspeak \
 
-python run_eval.py \
-    $OUTPUT_DIR \
-    $DATA_DIR  \
+python runeval.py \
+    model_dir $OUTPUT_DIR \
+    dataset_dir $DATA_DIR  \
+    --val \
     $@
